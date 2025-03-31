@@ -5,7 +5,7 @@
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github milrosen/reponame))
 
 (authors "Author Name <author@example.com>")
 
