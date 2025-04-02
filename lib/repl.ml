@@ -1,12 +1,13 @@
-let read str = str;;
-let eval ast _any = ast;;
-let print exp = exp;;
-let rep str = print (eval (read str) "")
+let read str = Reader.read_str str;;
+
+let check ast = ast;;
+let print exp = Reader.print_sexpr exp;;
+let rep str = read str |> check |> print
 
 let main = 
   try 
     while true do 
-      print_string "user> ";
+      print_string "repl> ";
       let line = read_line() in 
         try 
           print_endline (rep line)

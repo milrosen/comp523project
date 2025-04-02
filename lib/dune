@@ -1,2 +1,3 @@
 (library
+ (libraries str angstrom)
  (name MacrosProject))
