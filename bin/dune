@@ -1,4 +1,4 @@
 (executable
  (public_name MacrosProject)
  (name main)
- (libraries MacrosProject))
+ (libraries MacrosProject core))

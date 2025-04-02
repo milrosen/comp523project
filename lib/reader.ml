@@ -1,5 +1,4 @@
 let token_regex = Str.regexp {|\([()]\|[^ ()]+\)|}
-exception Unmatched_Parens
 
 type sexpr = 
     | List of sexpr list
