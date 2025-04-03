@@ -1,14 +1,5 @@
+open Types
 let token_regex = Str.regexp {|\([()]\|[^ ()]+\)|}
-
-type sexpr = 
-    | List of sexpr list
-    | Symbol of string
-
-let rec sexpr_eq a b =
-    match (a, b) with
-    | (List (l1::l1s), List (l2::l2s)) -> sexpr_eq l1 l2 && sexpr_eq (List l1s) (List l2s)
-    | (Symbol s1, Symbol s2) -> s1 = s2
-    | _ -> false
 
 type 'a reader = {
     form: 'a;
