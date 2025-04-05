@@ -1,4 +1,4 @@
-open Types
+module T = Ast_types.Types
 let token_regex = Str.regexp {|\([()]\|[^ ()]+\)|}
 
 type 'a reader = {
@@ -20,16 +20,16 @@ let rec read_list eol reader =
         read_list eol {form = reader.form @ [form] ; tokens = tokens}
 and read_form tokens =
     match tokens with 
-    | [] -> {form = List []; tokens = []}
+    | [] -> {form = T.List []; tokens = []}
     | "(" :: tokens -> 
         let {form ; tokens} = read_list ")" {form = [] ; tokens = tokens} in
-        { form = List form ; tokens = tokens}
+        { form = T.List form ; tokens = tokens}
     | tk :: tokens -> {form = Symbol tk ; tokens = tokens}
     ;;
 let rec print_sexpr s = 
     match s with
-    | Symbol str -> str
-    | List s -> "[" ^ (List.map print_sexpr s |> String.concat " ") ^ "]"
+    | T.Symbol str -> str
+    | T.List s -> "(" ^ (List.map print_sexpr s |> String.concat " ") ^ ")"
 let read_str x = 
     let {form ; _} = read_form (tokenize x) in
     form
