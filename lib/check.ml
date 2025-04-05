@@ -1,5 +1,5 @@
 (* TODO: Define Env *)
-open Env
+(* open Env *)
 
 (* Phase one: building an environment *)
 (* in this section, I would like to go through each of the
