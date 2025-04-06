@@ -16,5 +16,7 @@ let test_basic  =
 (* TODO : Add tests for Overlap/Ordering (IMPORTANT!!!!) *)
 
 let () =
-    Alcotest.run "tests" [("AST", test_basic)] ~compact:true 
+    Alcotest.run "tests" [("AST", test_basic);
+                          ("Shapes", Test_shapes.tests)  ] ~compact:true 
+                          
 
