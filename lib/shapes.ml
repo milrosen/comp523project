@@ -40,3 +40,10 @@ let rec (<=) s1 s2 =
   | List l, Type Expr -> (List.length l >= 2) && List.for_all (fun s -> s <= Type Expr) l
   | s, Mclauses clauses -> List.exists (fun (_, sk) -> s <= sk) clauses && no_overlap clauses
   | s1, s2 -> s1 = s2
+
+let symbol_to_type s = 
+  match s with 
+  | "def" -> Def
+  | "expr" -> Expr
+  | t -> raise (TypeError ("type " ^ t ^ " does not exist"))
+
