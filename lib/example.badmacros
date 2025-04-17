@@ -1,6 +1,6 @@
 ((define-syntax incr
     (syntax-laws expr 
-     ((test (x)
+    ((incr (x)
         ([x expr])
         (+ x 1)))))
 (incr y))

@@ -1,21 +1,21 @@
 exception TypeError of string
-type t = 
+type t =
   | Expr
-  | Def
+  | Def [@@deriving eq, show]
 
-type s = 
+type s  = 
   | Type of t
   | Ident
   | Any
   | List of s list
   | Mclauses of (s * s) list
-  | Arrow of s * t
+  | Arrow of s * t  [@@deriving eq, show] 
 
 let every_pair l1 l2 =
   let rec every_pair_except l1 l2 n =
     match l1 with
     | [] -> []
-    | _ :: [] -> []
+    | _ :: [] -> [] 
     | x :: xs -> (List.map (fun y -> (x, y)) l2 |> List.drop 1) @ every_pair_except xs l2 (n-1)
   in every_pair_except l1 l2 (List.length l1 - 1)
   let rec overlap s1 s2 = 
@@ -30,6 +30,7 @@ let no_overlap clauses =
   let uclauses = List.map snd clauses in 
   List.for_all (fun (u1, u2) -> not (overlap u1 u2)) (every_pair uclauses uclauses)
 
+
 let rec (<=) s1 s2 =
   match s1, s2 with
   | Type t1, Type t2 -> t1 = t2
@@ -41,7 +42,7 @@ let rec (<=) s1 s2 =
   | s, Mclauses clauses -> List.exists (fun (_, sk) -> s <= sk) clauses && no_overlap clauses
   | s1, s2 -> s1 = s2
 
-let symbol_to_type s = 
+let symbol_to_type s =
   match s with 
   | "def" -> Def
   | "expr" -> Expr

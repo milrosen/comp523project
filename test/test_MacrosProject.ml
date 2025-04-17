@@ -17,6 +17,7 @@ let test_basic  =
 
 let () =
     Alcotest.run "tests" [("AST", test_basic);
-                          ("Shapes", Test_shapes.tests)  ] ~compact:true 
+                          ("Shapes", Test_shapes.tests);
+                          ("Check",  Test_check.tests) ] ~compact:true 
                           
 

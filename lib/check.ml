@@ -8,13 +8,41 @@ exception TypeError of string
   macro definitions in order, building up the Gamma and Phi 
   contexts, as well as the rho substitution environment *)
 let initial_ctx = Context.empty
-  |> Context.set Macro "lambda" (S.Arrow (List [List [Ident]; Type Expr], Expr))
-  |> Context.set Macro "define" (S.Arrow (List [Ident; Type Expr], Def))
-  |> Context.set Macro "quote"  (S.Arrow (List [Any], Expr))
-  |> Context.set Macro "app"    (S.Arrow (List [Type Expr; Type Expr], Expr))
+  |> Context.add Macro "lambda" (S.Arrow (List [List [Ident]; Type Expr], Expr))
+  |> Context.add Macro "define" (S.Arrow (List [Ident; Type Expr], Def))
+  |> Context.add Macro "quote"  (S.Arrow (List [Any], Expr))
+  |> Context.add Macro "app"    (S.Arrow (List [Type Expr; Type Expr], Expr))
 
-let check_program ctx subst_env ast = raise (TypeError "not implemented yet")
+let true_or_error b msg =
+  if b then () else raise (TypeError msg)
 
+let rec type_check ctx t ast = 
+  match ast with
+  | A.Symbol s when int_of_string_opt s != None -> true_or_error (t = S.Expr) ("Symbol " ^ s ^ " expected to be datum")
+  | A.Symbol s when not (Context.has s ctx) -> true_or_error (t = S.Expr) ("Symbol " ^ s ^ " expected to be ident")
+  | A.Symbol s ->
+      (match Context.find_opt ~vartype:Context.PVar s ctx with
+      | Some shape -> true_or_error S.(shape <= Type Expr) ("Symbol " ^ s ^ " has shape " ^ S.show_s shape ^ " which is not a subtype of " ^ S.show t)
+      | None -> raise (TypeError ("Symbol " ^ s ^ " either macro or undefined, expected typeable variable")))
+  | A.List (Symbol m :: args) ->
+    (match Context.find_opt ~vartype:Context.Macro m ctx with
+    | Some (Arrow (s, t')) ->  
+      let arg_shape = shape_of ctx (A.List args) in 
+      true_or_error (S.(arg_shape <= s)) ("application " ^ m ^ " " ^ S.show_s arg_shape ^ " does not match any clause " ^ S.show_s s);
+      true_or_error (t = t') ("output type " ^ S.show t' ^ " of macro " ^ m ^ " does not match expected output " ^ S.show t);
+    | Some _ -> failwith ("macro or keyword " ^ m ^ " is not arrow type, catastrophic")
+    | None -> 
+      true_or_error (t = Expr) "found application, expected definition";
+      let _ = List.map (type_check ctx t) (Symbol m :: args) in ())
+  | _ -> failwith ("not implemented")
+
+and shape_of ctx ast = 
+  match ast with 
+  | A.Symbol s when int_of_string_opt s != None -> S.Type S.Expr
+  | A.Symbol s when not (Context.has s ctx) -> S.Ident
+  | A.Symbol s -> 
+    (match Context.find_opt s ctx with Some s -> s | None -> S.Any)
+  | A.List l -> S.List (List.map (shape_of ctx) l)
  
 (* in the paper, it seems that the context can contain
    way more than just pattern variables, it can also contain 
@@ -22,20 +50,20 @@ let check_program ctx subst_env ast = raise (TypeError "not implemented yet")
    however, strict to the studs, it seems that neither of
    these are allowed in the judgements they actually define *)
 
-let guarded ctx pattern macro = 
+let guarded ctx macro pattern = 
   let rec go pattern =
     (match pattern with 
     | A.List [] -> S.List []
     | A.List l -> S.List (List.map go l)
-    | A.Symbol pvar -> match Context.get pvar ctx with
+    | A.Symbol pvar -> match Context.find_opt ~vartype:PVar pvar ctx with
       | Some s -> s
-      | None -> raise (TypeError ("unbound pvar " ^ pvar ^ " in macro " ^ macro)))
+      | None -> raise (TypeError ("unguarded pvar " ^ pvar ^ " in macro " ^ macro)))
   in
   match pattern with 
-  | A.List [A.Symbol m ; pattern] when m = macro -> go pattern
+  | A.List (A.Symbol m :: pattern) when m = macro -> go (A.List pattern) 
   | _ -> raise (TypeError "macro clauses must begin with the name of the macro")
 
-let unguarded pattern macro = 
+let unguarded macro pattern = 
   let rec go pattern =
     (match pattern with 
     | A.List [] -> S.List []
@@ -43,24 +71,29 @@ let unguarded pattern macro =
     | A.Symbol _ -> S.Any)
   in 
   match pattern with 
-  | A.List [A.Symbol m; pattern] when m = macro -> go pattern
+  | A.List (A.Symbol m :: pattern) when m = macro -> go (A.List pattern) 
   | _ -> raise (TypeError "macro clauses must begin with the name of the macro")
 
-let rec templates = failwith "Not Implemented"
+let rec check_templates ctx t clauses = 
+  match clauses with 
+  | A.List [_pattern; _guard; A.List template] :: clauses ->
+    type_check ctx t (A.List template) ; check_templates ctx t clauses
+  | [] -> ()
+  | _ -> raise (TypeError "malformed macro definition")
 
-let macro_type ctx clauses t macro = 
+let macro_shape ctx macro t clauses = 
   let rec go clauses acc =
   match clauses with 
   | [] -> if S.no_overlap acc then S.Arrow (Mclauses acc, t) else raise (TypeError "macro contains overlapping clauses" )
-  | A.List [pattern; guard] :: clauses ->
+  | A.List [pattern; guard; _template] :: clauses ->
     let ctx = Context.from_guard guard ctx in
-    let g = guarded ctx pattern macro in
-    let u = unguarded pattern macro in
+    let g = guarded ctx macro pattern in
+    let u = unguarded macro pattern in
       go clauses ((g, u) :: acc)
   | _ -> raise (TypeError "malformed macro")
   in go clauses []
 
-let check_macros ast =
+let check_program ast =
   let rec go ctx subst_env ast = 
     match ast with
     | A.List [Symbol "define-syntax"; Symbol macro;
@@ -68,10 +101,13 @@ let check_macros ast =
               List clauses]] :: ast ->
       let t = S.symbol_to_type t in
       let subst_env = Env.add macro (clauses, t) subst_env in
-      let ctx = Context.set Macro macro (macro_type ctx clauses t macro) ctx in
-
+      let ctx = Context.add Macro macro (macro_shape ctx macro t clauses) ctx in
+      check_templates ctx t clauses ;
       go ctx subst_env ast
-    | _ -> check_program ctx subst_env ast
+    | l :: ls -> 
+       (try type_check ctx Expr l with | TypeError _ -> type_check ctx Def l);
+       go ctx subst_env ls
+    | [] -> subst_env
   in go initial_ctx Env.empty ast 
 
 

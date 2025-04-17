@@ -18,36 +18,49 @@ let check_against key ctx =
     | None -> ()
     | Some _ -> raise (TypeError ("attempted to create variable " ^ key ^ " which is already a pvar/macro in this context"))
 
-let update_ctx key value ctx = 
+(* let update_ctx key value ctx = 
     match Data.find_opt key ctx with 
     | None -> Data.add key value ctx
-    | Some s -> assert S.(value <= s) ; Data.add key value ctx
-let set vartype key value {gamma ; phi} =
+    | Some s -> assert S.(value <= s) ; Data.add key value ctx *)
+
+let add vartype key value {gamma ; phi} =
     if vartype = Macro then 
         (check_against key phi ; 
-        {gamma=update_ctx key value gamma;phi=phi})
+        {gamma=Data.add key value gamma;phi=phi})
     else 
         (check_against key gamma ;
-        {gamma=gamma;phi=update_ctx key value phi})
+        {gamma=gamma;phi=Data.add key value phi})
 
-let get key {gamma ; phi} =
-    match Data.find_opt key gamma with
-    | Some s -> Some s
-    | None -> match Data.find_opt key phi with
-        | Some s -> Some s
-        | None -> None
+let rec has ?vartype key {gamma ; phi} = 
+    match vartype with 
+    | Some PVar -> not (Data.find_opt key phi = None)
+    | Some Macro -> not (Data.find_opt key phi = None)
+    | None -> (has ~vartype:PVar key {gamma ; phi}) || (has ~vartype:Macro key {gamma ; phi})
+
+let find_opt ?vartype key {gamma ; phi} =
+    match vartype with 
+    | Some PVar -> Data.find_opt key phi 
+    | Some Macro -> Data.find_opt key gamma
+    | None ->
+         match Data.find_opt key gamma with
+        | Some s -> Some s 
+        | None -> match Data.find_opt key phi with
+            | Some s -> Some s
+            | None -> None
 
 let rec sexpr_to_shape s =
   match s with
   | A.List l -> S.List (List.map sexpr_to_shape l)
+  | A.Symbol s when s = "ident" -> Ident
   | A.Symbol s -> try S.Type (S.symbol_to_type s) with 
     | TypeError _ -> raise (TypeError ("invalid type " ^ s ^ " in guard clauses"))
 
 
 let rec phi_from_guard guard phi =
     match guard with
-    | A.List (A.List [A.Symbol pvar; s] :: rst) -> 
-        phi_from_guard (A.List rst) (Data.add pvar (sexpr_to_shape s) phi)
+    | A.List [] -> phi
+    | A.List ((A.List [Symbol s; shape]) :: rest) -> 
+        phi |> Data.add s (sexpr_to_shape shape) |> phi_from_guard (A.List rest)
     | _ -> raise (TypeError "malformed guard clause")
 
 let from_guard guard {gamma ; _} =
