@@ -13,8 +13,6 @@ let test_basic  =
     [test_reader "parses sucessfully" "(how (nested) (is (too) (nested)))"
         (List[Symbol "how"; List [Symbol "nested"] ; List [Symbol "is"; List [Symbol "too"]; List [Symbol "nested"]]])]
 
-(* TODO : Add tests for Overlap/Ordering (IMPORTANT!!!!) *)
-
 let () =
     Alcotest.run "tests" [("AST", test_basic);
                           ("Shapes", Test_shapes.tests);

@@ -34,7 +34,7 @@ let add vartype key value {gamma ; phi} =
 let rec has ?vartype key {gamma ; phi} = 
     match vartype with 
     | Some PVar -> not (Data.find_opt key phi = None)
-    | Some Macro -> not (Data.find_opt key phi = None)
+    | Some Macro -> not (Data.find_opt key gamma = None)
     | None -> (has ~vartype:PVar key {gamma ; phi}) || (has ~vartype:Macro key {gamma ; phi})
 
 let find_opt ?vartype key {gamma ; phi} =

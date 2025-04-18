@@ -1,12 +1,8 @@
-(* TODO: Define Env *)
 module S = Shapes
 module A = Ast_types.Types
 module Env = Map.Make (String)
 exception TypeError of string
-(* Phase one: building an environment *)
-(* in this section, I would like to go through each of the
-  macro definitions in order, building up the Gamma and Phi 
-  contexts, as well as the rho substitution environment *)
+
 let initial_ctx = Context.empty
   |> Context.add Macro "lambda" (S.Arrow (List [List [Ident]; Type Expr], Expr))
   |> Context.add Macro "define" (S.Arrow (List [Ident; Type Expr], Def))
@@ -34,8 +30,10 @@ let rec type_check ctx t ast =
     | None -> 
       true_or_error (t = Expr) "found application, expected definition";
       let _ = List.map (type_check ctx t) (Symbol m :: args) in ())
-  | _ -> failwith ("not implemented")
-
+   | A.List (l :: ls) ->
+      type_check ctx t l ;
+      let _ = List.map (type_check ctx t) ls in ()
+   | A.List [] -> ()
 and shape_of ctx ast = 
   match ast with 
   | A.Symbol s when int_of_string_opt s != None -> S.Type S.Expr
@@ -111,12 +109,6 @@ let check_program ast =
   in go initial_ctx Env.empty ast 
 
 
-(* Phase two: checking the rest of the program as well as
-  macro templates *)
-(* in this section, we should be able to recieve some Gamma
-  and phi, and then see if the macros are possible to expand *)
-(* I believe that the output of this section should be the "typed"
-  AST written in the Surface language *)
 
 
 
