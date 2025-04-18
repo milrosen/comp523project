@@ -13,7 +13,8 @@ let test_reader test_name input expected =
 let test_basic  =
     [test_reader "parses sucessfully" "(how (nested) (is (too) (nested))) ()"
         (List[List[Symbol "how"; List [Symbol "nested"] ; List [Symbol "is"; List [Symbol "too"]; List [Symbol "nested"]]]; List[]]);
-    ]
+     test_reader "ignores newlines" "(Gee I sure hope that \n didnt count as a symbol!)"
+        (List (Reader.read_str "(Gee I sure hope that didnt count as a symbol!)"))]
 
 let () =
     Alcotest.run "tests" [("AST", test_basic);

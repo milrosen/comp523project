@@ -12,6 +12,12 @@ let initial_ctx = Context.empty
 let true_or_error b msg =
   if b then () else raise (TypeError msg)
 
+(* the way I read the paper, type checking should sometimes fail, while
+ shaping should always suceed. To that end, the type checker is constantly
+ asserting. The only interesting case is the application of macros to arguments.
+ In that case, we get the shape of the argument and check if it is a subshape of the
+ input shape. If we have a macro, then this is true if we match one of the clauses.
+ and if we have a keyword, then this is true if we match whatever the input shape is *)
 let rec type_check ctx t ast = 
   match ast with
   | A.Symbol s when int_of_string_opt s != None -> true_or_error (t = S.Expr) ("Symbol " ^ s ^ " expected to be datum")
@@ -24,7 +30,7 @@ let rec type_check ctx t ast =
     (match Context.find_opt ~vartype:Context.Macro m ctx with
     | Some (Arrow (s, t')) ->  
       let arg_shape = shape_of ctx (A.List args) in 
-      true_or_error (S.(arg_shape <= s)) ("application " ^ m ^ " " ^ S.show_s arg_shape ^ " does not match any clause " ^ S.show_s s);
+      true_or_error (S.(arg_shape <= s))  ("application " ^ m ^ " " ^ S.show_s arg_shape ^ " does not match any clause " ^ S.show_s s);
       true_or_error (t = t') ("output type " ^ S.show t' ^ " of macro " ^ m ^ " does not match expected output " ^ S.show t);
     | Some _ -> failwith ("macro or keyword " ^ m ^ " is not arrow type, catastrophic")
     | None -> 
@@ -34,6 +40,16 @@ let rec type_check ctx t ast =
       type_check ctx t l ;
       let _ = List.map (type_check ctx t) ls in ()
    | A.List [] -> ()
+(* here, we generate the least-general shape possible for a given sexpr. Everything is an
+  identifier unless it is syntactically a number. In the paper, they say that they assign
+  unbound keywords the "any" shape, and we do that here too. However, I am unsure
+  how we could possibly have an unbound keyword in practice. Note that we aren't ever checking
+  for unbound variables, since we need to know that the "x" in lambda (x) (...) is an ident
+  before it has a chance to be bound
+  Also, note that we always just generate the arrow shape of any macros and keywords in our context
+  This might seem like a problem, but remember that the application of arrow shapes is actually
+  Done in the subshaping judgement, so it's fine. Also, note that an arrow is never a subshape of anything
+  except an any, so we can't have a macro that expects a macro as input. *)
 and shape_of ctx ast = 
   match ast with 
   | A.Symbol s when int_of_string_opt s != None -> S.Type S.Expr
@@ -46,19 +62,19 @@ and shape_of ctx ast =
    way more than just pattern variables, it can also contain 
    named abbreviations and the dot (a b . (c d)) = (a b c d) 
    however, strict to the studs, it seems that neither of
-   these are allowed in the judgements they actually define *)
-
-let guarded ctx macro pattern = 
-  let rec go pattern =
-    (match pattern with 
+   these are allowed in the judgements they actually define, since 
+   I don't know how'd they'd ever get in Phi *)
+let rec guarded_shape ctx macro pattern =
+    match pattern with 
     | A.List [] -> S.List []
-    | A.List l -> S.List (List.map go l)
+    | A.List l -> S.List (List.map (guarded_shape ctx macro) l)
     | A.Symbol pvar -> match Context.find_opt ~vartype:PVar pvar ctx with
       | Some s -> s
-      | None -> raise (TypeError ("unguarded pvar " ^ pvar ^ " in macro " ^ macro)))
-  in
+      | None -> raise (TypeError ("unguarded pvar " ^ pvar ^ " in macro " ^ macro))
+
+let guarded ctx macro pattern = 
   match pattern with 
-  | A.List (A.Symbol m :: pattern) when m = macro -> go (A.List pattern) 
+  | A.List (A.Symbol m :: pattern) when m = macro -> guarded_shape ctx macro (A.List pattern) 
   | _ -> raise (TypeError "macro clauses must begin with the name of the macro")
 
 let rec unguarded_shape pattern = 
@@ -74,11 +90,16 @@ let unguarded macro pattern =
 
 let rec check_templates ctx t clauses = 
   match clauses with 
-  | A.List [_pattern; _guard; A.List template] :: clauses ->
-    type_check ctx t (A.List template) ; check_templates ctx t clauses
+  | A.List [_pattern; guard; template] :: clauses ->
+    let ctx = Context.from_guard guard ctx in 
+    type_check ctx t template ; check_templates ctx t clauses
   | [] -> ()
   | _ -> raise (TypeError "malformed macro definition")
 
+(* here, and in the paper, we add guard clauses to our context twice. Once when
+  we are generating the shape of the patterns, and a second time when we are
+  checking the templates. This is important since we don't want any pattern varaibles
+  in our context when we are type checking the program itself *)
 let macro_shape ctx macro t clauses = 
   let rec go clauses acc =
   match clauses with 
@@ -104,8 +125,12 @@ let check_program ast =
       go ctx subst_env ast
     | A.List (Symbol "define-syntax" :: ast) :: _ ->
      raise (TypeError ("malformed macro definition: " ^ Reader.print_sexpr_list ast))
+     
+     (* admittedly, this is silly, but it seemed like the most straightforward option, since
+        we can have macros that generate defs and exprs, it doesn't seem like there's a way to
+        know in advance what type we want for our toplevel forms *)
     | l :: ls -> 
-       (try type_check ctx Expr l with | TypeError _ -> type_check ctx Def l);
-       go ctx subst_env ls
+       let some_type l = (try type_check ctx Expr l with | TypeError _ -> type_check ctx Def l) in
+       let _ = List.map some_type (l :: ls) in subst_env
     | [] -> subst_env
   in go initial_ctx Env.empty ast 

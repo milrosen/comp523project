@@ -11,13 +11,11 @@ type s  =
   | Mclauses of (s * s) list
   | Arrow of s * t  [@@deriving eq, show] 
 
-let every_pair l1 l2 =
-  let rec every_pair_except l1 l2 n =
-    match l1 with
-    | [] -> []
-    | _ :: [] -> [] 
-    | x :: xs -> (List.map (fun y -> (x, y)) l2 |> List.drop 1) @ every_pair_except xs l2 (n-1)
-  in every_pair_except l1 l2 (List.length l1 - 1)
+let rec every_pair l1 l2 =
+  match l1 with
+  | [] -> []
+  | _ :: [] -> [] 
+  | x :: xs -> (List.map (fun y -> (x, y)) l2 |> List.drop 1) @ every_pair xs l2
 
 let rec overlap s1 s2 = 
   match s1, s2 with

@@ -18,11 +18,6 @@ let check_against key ctx =
     | None -> ()
     | Some _ -> raise (TypeError ("attempted to create variable " ^ key ^ " which is already a pvar/macro in this context"))
 
-(* let update_ctx key value ctx = 
-    match Data.find_opt key ctx with 
-    | None -> Data.add key value ctx
-    | Some s -> assert S.(value <= s) ; Data.add key value ctx *)
-
 let add vartype key value {gamma ; phi} =
     if vartype = Macro then 
         (check_against key phi ; 
@@ -54,7 +49,6 @@ let rec sexpr_to_shape s =
   | A.Symbol s when s = "ident" -> Ident
   | A.Symbol s -> try S.Type (S.symbol_to_type s) with 
     | TypeError _ -> raise (TypeError ("invalid type " ^ s ^ " in guard clauses"))
-
 
 let rec phi_from_guard guard phi =
     match guard with
