@@ -1,5 +1,5 @@
-module T = Ast_types.Types
-let token_regex = Str.regexp {|\([()]\|[^ ()]+\)|}
+module A = Ast_types.Types
+let token_regex = Str.regexp "\\([()]\\|[^\n ()]+\\)"
 
 type 'a reader = {
     form: 'a;
@@ -20,16 +20,19 @@ let rec read_list eol reader =
         read_list eol {form = reader.form @ [form] ; tokens = tokens}
 and read_form tokens =
     match tokens with 
-    | [] -> {form = T.List []; tokens = []}
+    | [] -> {form = A.List []; tokens = []}
     | "(" :: tokens -> 
         let {form ; tokens} = read_list ")" {form = [] ; tokens = tokens} in
-        { form = T.List form ; tokens = tokens}
+        { form = A.List form ; tokens = tokens}
     | tk :: tokens -> {form = Symbol tk ; tokens = tokens}
     ;;
 let rec print_sexpr s = 
     match s with
-    | T.Symbol str -> str
-    | T.List s -> "(" ^ (List.map print_sexpr s |> String.concat " ") ^ ")"
+    | A.Symbol str -> str
+    | A.List s -> "(" ^ (List.map print_sexpr s |> String.concat " ") ^ ")"
+
+let print_sexpr_list l =
+    List.map print_sexpr l |> String.concat "\n"
 let read_str x = 
-    let {form ; _} = read_form (tokenize x) in
+    let {form ; _} = read_list "EOF" {form = []; tokens = (tokenize x) @ ["EOF"] } in
     form

@@ -18,18 +18,18 @@ let every_pair l1 l2 =
     | _ :: [] -> [] 
     | x :: xs -> (List.map (fun y -> (x, y)) l2 |> List.drop 1) @ every_pair_except xs l2 (n-1)
   in every_pair_except l1 l2 (List.length l1 - 1)
-  let rec overlap s1 s2 = 
+
+let rec overlap s1 s2 = 
   match s1, s2 with
   | Any, _ -> true
   | _, Any -> true
   | List l1, List l2 -> List.length l1 == List.length l2 && 
     List.for_all2 (fun u1 u2 -> overlap u1 u2) l1 l2
-  | _, _ -> raise (TypeError "Invalid shapes (neither any nor list) checked for overlap")
+  | _, _ -> failwith "Catastrophic, Invalid shapes (neither any nor list) checked for overlap"
 
 let no_overlap clauses = 
   let uclauses = List.map snd clauses in 
   List.for_all (fun (u1, u2) -> not (overlap u1 u2)) (every_pair uclauses uclauses)
-
 
 let rec (<=) s1 s2 =
   match s1, s2 with

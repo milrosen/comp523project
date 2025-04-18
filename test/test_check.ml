@@ -3,6 +3,7 @@ module S = MacrosProject.Shapes
 module Check = MacrosProject.Check
 module A = MacrosProject.Ast_types.Types
 module Context = MacrosProject.Context
+module Env = Map.Make (String)
 exception TypeError = MacrosProject.Check.TypeError
 open Base 
 
@@ -19,6 +20,16 @@ let test_macro_shape ?error:msg test_name ctx macro_name ast expected_type =
   ,`Quick ,
     fun () -> Alcotest.(check (testable S.pp_s S.equal_s)) 
     test_name expected_type (Check.macro_shape ctx macro_name S.Expr ast) )
+
+let test_expansion_env test_name macro_name ast expected_exn = 
+  let test_name = "Expansion Env: " ^ test_name in
+  let rho = Check.check_program ast in
+  match rho |> Env.find_opt macro_name with None -> Alcotest.fail test_name
+  | Some (macro, _t) -> 
+    (test_name
+    ,`Quick
+    , fun () -> Alcotest.(check (list (testable A.pp A.equal))) 
+    test_name expected_exn macro)
 
 let test_type_check ?error:msg test_name ctx ast expected_type =
   let test_name = "Type Check: " ^ test_name in
@@ -46,7 +57,7 @@ let (^::) symbol symbols =
     | A.List s -> A.List ([A.Symbol symbol] @ s)
     | A.Symbol s -> A.List [A.Symbol symbol; Symbol s]
 let (^.) s1 s2 = A.List [A.Symbol s1 ; A.Symbol s2]
-let (^@)  symbol symbols  = A.List [Symbol symbol; symbols]
+let (^@)  symbol symbols = A.List [A.Symbol symbol; symbols]
 let (~^) l = A.List l
 let sy s = A.Symbol s 
 
@@ -102,4 +113,10 @@ let tests =
    test_type_check "correct outer shape, but body fails" Check.initial_ctx S.Expr
    ~error:"application lambda"
    ~^[sy "lambda"; ~^[sy "x"]; "app" ^. "x"];
-     ]
+
+   test_expansion_env "generates expansion env" "incr" 
+   ["define-syntax" ^:: "incr" ^@ 
+    "syntax-laws" ^:: "expr" ^@ 
+      ~^[~^["incr" ^. "x"; ~^["x" ^. "ident"]; "x" ^:: "+" ^. "1"]]]
+   [~^["incr" ^. "x"; ~^["x" ^. "ident"]; "x" ^:: "+" ^. "1"]
+     ]]

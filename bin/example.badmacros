@@ -1,0 +1,6 @@
+(define-syntax incr
+    (syntax-laws expr 
+        (((incr x)
+        ((x ident))
+        (+ x 1)))))
+(incr y)

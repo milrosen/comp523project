@@ -1,7 +1,7 @@
 let read str = Reader.read_str str;;
 
 let check ast = ast;;
-let print exp = Reader.print_sexpr exp;;
+let print exp = List.map Reader.print_sexpr exp |> String.concat "\n";;
 let rep str = read str |> check |> print
 
 let main = 

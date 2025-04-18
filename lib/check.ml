@@ -61,15 +61,15 @@ let guarded ctx macro pattern =
   | A.List (A.Symbol m :: pattern) when m = macro -> go (A.List pattern) 
   | _ -> raise (TypeError "macro clauses must begin with the name of the macro")
 
-let unguarded macro pattern = 
-  let rec go pattern =
-    (match pattern with 
-    | A.List [] -> S.List []
-    | A.List l -> S.List (List.map go l)
-    | A.Symbol _ -> S.Any)
-  in 
+let rec unguarded_shape pattern = 
   match pattern with 
-  | A.List (A.Symbol m :: pattern) when m = macro -> go (A.List pattern) 
+  | A.List [] -> S.List []
+  | A.List l -> S.List (List.map unguarded_shape l)
+  | A.Symbol _ -> S.Any
+
+let unguarded macro pattern = 
+   match pattern with 
+  | A.List (A.Symbol m :: pattern) when m = macro -> unguarded_shape (A.List pattern) 
   | _ -> raise (TypeError "macro clauses must begin with the name of the macro")
 
 let rec check_templates ctx t clauses = 
@@ -88,7 +88,7 @@ let macro_shape ctx macro t clauses =
     let g = guarded ctx macro pattern in
     let u = unguarded macro pattern in
       go clauses ((g, u) :: acc)
-  | _ -> raise (TypeError "malformed macro")
+  | _ -> raise (TypeError ("malformed macro: " ^ Reader.print_sexpr_list clauses))
   in go clauses []
 
 let check_program ast =
@@ -102,13 +102,10 @@ let check_program ast =
       let ctx = Context.add Macro macro (macro_shape ctx macro t clauses) ctx in
       check_templates ctx t clauses ;
       go ctx subst_env ast
+    | A.List (Symbol "define-syntax" :: ast) :: _ ->
+     raise (TypeError ("malformed macro definition: " ^ Reader.print_sexpr_list ast))
     | l :: ls -> 
        (try type_check ctx Expr l with | TypeError _ -> type_check ctx Def l);
        go ctx subst_env ls
     | [] -> subst_env
   in go initial_ctx Env.empty ast 
-
-
-
-
-
