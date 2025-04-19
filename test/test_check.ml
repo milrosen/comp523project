@@ -98,7 +98,7 @@ let tests =
 
    test_type_check "more general type in argument" Check.initial_ctx S.Expr
    ~error:"application lambda"
-   ~^[sy "lambda"; "quote" ^. "5" ; sy "y"];
+   ~^[sy "lambda"; "x" ^. "y" ; sy "y"];
 
    test_type_check "too many args lambda" Check.initial_ctx S.Expr
    ~error:"application lambda"
