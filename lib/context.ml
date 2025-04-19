@@ -45,6 +45,7 @@ let find_opt ?vartype key {gamma ; phi} =
 
 let rec sexpr_to_shape s =
   match s with
+  | A.List [x; Symbol "..."] -> S.Repeat (sexpr_to_shape x)
   | A.List l -> S.List (List.map sexpr_to_shape l)
   | A.Symbol s when s = "ident" -> Ident
   | A.Symbol s -> try S.Type (S.symbol_to_type s) with 

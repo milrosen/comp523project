@@ -9,6 +9,7 @@ type s  =
   | Any
   | List of s list
   | Mclauses of (s * s) list
+  | Repeat of s
   | Arrow of s * t  [@@deriving eq, show] 
 
 let rec every_pair l =
@@ -16,7 +17,6 @@ let rec every_pair l =
   | [x; y] -> [(x, y)]
   | [] -> []
   | x :: xs -> List.map (fun y -> (x, y)) xs @ every_pair xs
-  
 
 let rec overlap s1 s2 = 
   match s1, s2 with
@@ -35,7 +35,11 @@ let rec (<=) s1 s2 =
   | Type t1, Type t2 -> t1 = t2
   | Ident, (Type Expr) -> true
   | _, Any -> true
-  | List (Arrow (s, t1) :: ss), Type t2 -> t1 = t2 && (List ss <= s)
+  | Repeat s1, List [s2; List rst] -> s1 = s2 && Repeat s1 <= List rst
+  | Repeat s1, List [s2; Repeat s3] -> s1 = s2 && s1 = s3
+  | Repeat _,  List [] -> true
+  | List _l, Repeat _s -> true
+  | List (Arrow (s, t1) :: args), Type t2 -> t1 = t2 && (List args <= s)
   | List l1, List l2 -> (List.length l1 == List.length l2) && List.for_all2 (<=) l1 l2
   | List l, Type Expr -> (List.length l >= 2) && List.for_all (fun s -> s <= Type Expr) l
   | s, Mclauses clauses -> List.exists (fun (sk, _) -> s <= sk) clauses && no_overlap clauses
