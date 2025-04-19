@@ -3,4 +3,4 @@
         (((incr x)
         ((x ident))
         (+ x 1)))))
-(incr y)
+(incr (x y))

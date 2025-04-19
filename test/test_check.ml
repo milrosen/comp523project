@@ -14,7 +14,7 @@ let test_macro_shape ?error:msg test_name ctx macro_name ast expected_type =
     (test_name
     ,`Quick
     , fun () -> Alcotest.check_raises test_name (TypeError msg) (fun () ->
-        (let _ = Check.macro_shape ctx macro_name S.Expr ast in ())))
+        ignore (Check.macro_shape ctx macro_name S.Expr ast)))
   | None ->
     (test_name
   ,`Quick ,
@@ -67,7 +67,8 @@ let tests =
     [~^["incr" ^. "x"; ~^["x" ^. "ident"]; ~^[]]]
     (S.Arrow (S.Mclauses [(S.List [S.Ident], S.List[S.Any])], S.Expr));
 
-   test_macro_shape ~error:"unguarded pvar y in macro incr" "unbound" Check.initial_ctx "incr"
+   test_macro_shape "unbound" Check.initial_ctx "incr"
+    ~error:"unguarded pvar y in macro incr" 
     [~^["incr" ^. "y"; ~^["x" ^. "ident"]; ~^[]]]
     (S.Arrow (S.Mclauses [(S.List [S.Ident], S.List [S.Any])], S.Expr));
 

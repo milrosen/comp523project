@@ -35,10 +35,10 @@ let rec type_check ctx t ast =
     | Some _ -> failwith ("macro or keyword " ^ m ^ " is not arrow type, catastrophic")
     | None -> 
       true_or_error (t = Expr) "found application, expected definition";
-      let _ = List.map (type_check ctx t) (Symbol m :: args) in ())
+      ignore (List.map (type_check ctx t) (Symbol m :: args)))
    | A.List (l :: ls) ->
       type_check ctx t l ;
-      let _ = List.map (type_check ctx t) ls in ()
+      ignore (List.map (type_check ctx t) ls)
    | A.List [] -> ()
 (* here, we generate the least-general shape possible for a given sexpr. Everything is an
   identifier unless it is syntactically a number. In the paper, they say that they assign
@@ -131,6 +131,7 @@ let check_program ast =
         know in advance what type we want for our toplevel forms *)
     | l :: ls -> 
        let some_type l = (try type_check ctx Expr l with | TypeError _ -> type_check ctx Def l) in
-       let _ = List.map some_type (l :: ls) in subst_env
+       ignore (List.map some_type (l :: ls)) ;
+       subst_env
     | [] -> subst_env
   in go initial_ctx Env.empty ast 
