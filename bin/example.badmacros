@@ -3,6 +3,17 @@
         (((incr x)
         ((x ident))
         (+ x 1)))))
+(define-syntax doub
+    (syntax-laws expr
+      (((doub (x))
+        ((x ident))
+        (x))
+       ((doub (x y))
+        ((x ident) (y expr))
+        ())
+       ((doub x y)
+        ((x ident) (y (ident expr)))
+        (x x (doub y))))))
+(doub (x (x (x (x)))))
 (incr x)
 ((+ 5) 6)
-(incr (x y))

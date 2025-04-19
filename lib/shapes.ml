@@ -11,11 +11,12 @@ type s  =
   | Mclauses of (s * s) list
   | Arrow of s * t  [@@deriving eq, show] 
 
-let rec every_pair l1 l2 =
-  match l1 with
+let rec every_pair l =
+  match l with 
+  | [x; y] -> [(x, y)]
   | [] -> []
-  | _ :: [] -> [] 
-  | x :: xs -> (List.map (fun y -> (x, y)) l2 |> List.drop 1) @ every_pair xs l2
+  | x :: xs -> List.map (fun y -> (x, y)) xs @ every_pair xs
+  
 
 let rec overlap s1 s2 = 
   match s1, s2 with
@@ -27,7 +28,7 @@ let rec overlap s1 s2 =
 
 let no_overlap clauses = 
   let uclauses = List.map snd clauses in 
-  List.for_all (fun (u1, u2) -> not (overlap u1 u2)) (every_pair uclauses uclauses)
+  List.for_all (fun (u1, u2) -> not (overlap u1 u2) && not (overlap u2 u1)) (every_pair uclauses)
 
 let rec (<=) s1 s2 =
   match s1, s2 with

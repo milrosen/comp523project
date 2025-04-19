@@ -24,7 +24,7 @@ let rec type_check ctx t ast =
   | A.Symbol s when not (Context.has s ctx) -> true_or_error (t = S.Expr) ("Symbol " ^ s ^ " expected to be ident")
   | A.Symbol s ->
       (match Context.find_opt ~vartype:Context.PVar s ctx with
-      | Some shape -> true_or_error S.(shape <= Type Expr) ("Symbol " ^ s ^ " has shape " ^ S.show_s shape ^ " which is not a subtype of " ^ S.show t)
+      | Some shape -> true_or_error S.(shape <= Type t) ("Symbol " ^ s ^ " has shape " ^ S.show_s shape ^ " which is not a subtype of " ^ S.show t)
       | None -> raise (TypeError ("Symbol " ^ s ^ " either macro or undefined, expected typeable variable")))
   | A.List (Symbol m :: args) ->
     (match Context.find_opt ~vartype:Context.Macro m ctx with
