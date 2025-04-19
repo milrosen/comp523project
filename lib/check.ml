@@ -38,6 +38,7 @@ let rec type_check ctx t ast =
       ignore (List.map (type_check ctx t) (Symbol m :: args)))
    | A.List (l :: ls) ->
       type_check ctx t l ;
+      true_or_error (t = Expr) "attempted to apply definition as function" ;
       ignore (List.map (type_check ctx t) ls)
    | A.List [] -> ()
 (* here, we generate the least-general shape possible for a given sexpr. Everything is an

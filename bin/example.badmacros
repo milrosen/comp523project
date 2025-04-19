@@ -3,4 +3,6 @@
         (((incr x)
         ((x ident))
         (+ x 1)))))
+(incr x)
+((+ 5) 6)
 (incr (x y))

@@ -37,7 +37,7 @@ let rec (<=) s1 s2 =
   | List (Arrow (s, t1) :: ss), Type t2 -> t1 = t2 && (List ss <= s)
   | List l1, List l2 -> (List.length l1 == List.length l2) && List.for_all2 (<=) l1 l2
   | List l, Type Expr -> (List.length l >= 2) && List.for_all (fun s -> s <= Type Expr) l
-  | s, Mclauses clauses -> List.exists (fun (_, sk) -> s <= sk) clauses && no_overlap clauses
+  | s, Mclauses clauses -> List.exists (fun (sk, _) -> s <= sk) clauses && no_overlap clauses
   | s1, s2 -> s1 = s2
 
 let symbol_to_type s =

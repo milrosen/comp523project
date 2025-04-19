@@ -31,10 +31,13 @@ let tests =
   test_ordering "mclauses correct"
     (List [Any; Any]) (Mclauses [(List [Any;Any], List[Any;Any])]) true;
   test_ordering "mclauses matches at least one"
-    (List [Type Expr; List [Ident]]) (Mclauses [
+    (List [Type Expr; List [Ident]]) 
+    (Mclauses [
       (List [Type Expr; List [Ident]], List[Any;List[Any]]); 
       (List [Type Expr; List [Any;Any]], List [Any; List[Any;Any]])]) true;
-  
+  test_ordering "mclauses doesn't match sometimes"
+    (List [Type Expr; List [Type Expr; Type Expr]]) 
+    (Mclauses [List [Type Expr; List [Ident]], List[Any;List[Any]]]) false;
  
   test_no_overlap "single clause never overlap" 
     [(S.Any, Any)] true;
