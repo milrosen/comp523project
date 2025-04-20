@@ -16,7 +16,7 @@
         (((defun x args y)
         ((x ident) (args (ident ...)) (y expr))
         (define x (curry args y))))))
-        
-(defun sum (a (b (c (d)))) (+ a b c d))
+
+(defun sum l(a b c d) (+ a b c d))
 (incr x)
 ((+ 5) 6)
