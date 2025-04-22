@@ -3,20 +3,13 @@
         (((incr x)
         ((x ident))
         (+ x 1)))))
-(define-syntax curry
-    (syntax-laws expr
-      (((curry (x args) y)
-        ((x ident) (args (ident ...)) (y expr))
-        (lambda (x) (curry args y)))
-       ((curry (x) y)
-        ((x ident) (y expr))
-        (lambda (x) y)))))
-(define-syntax defun
-    (syntax-laws def
-        (((defun x args y)
-        ((x ident) (args (ident ...)) (y expr))
-        (define x (curry args y))))))
 
-(defun sum l(a b c d) (+ a b c d))
+(define-syntax let
+    (syntax-laws expr
+        (((let (x y) z)
+        ((x ident) (y expr) (z expr))
+        ((lambda (x) z) y)))))
+
+(let (x (incr y)) (incr x))
 (incr x)
 ((+ 5) 6)

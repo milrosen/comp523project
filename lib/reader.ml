@@ -8,8 +8,8 @@ type 'a reader = {
 
 let rec lispy form = 
     match form with 
-    | (A.Symbol m) :: [] -> A.List [A.Symbol m]
-    | (A.List l) :: [] -> A.List [lispy l]
+    (* | (A.Symbol m) :: [] -> A.List [A.Symbol m]
+    | (A.List l) :: [] -> A.List [lispy l] *)
     | (A.Symbol m) :: rst -> A.List [Symbol m; lispy rst]
     | (A.List l) :: rst -> A.List [lispy l; lispy rst]
     | [] -> A.List []

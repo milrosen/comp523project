@@ -43,9 +43,12 @@ let find_opt ?vartype key {gamma ; phi} =
             | Some s -> Some s
             | None -> None
 
+                                                   (* (a a... b, () b) -> t, u (a a... b, (), b)      *)
+(* so then I pull unions to the front, so a clause looks like (s1, union s2 s3) -> t, s1 *)
+(* and then when I apply mclauses to a union, I check that a at least one clause matches each case *)
 let rec sexpr_to_shape s =
   match s with
-  | A.List [x; Symbol "..."] -> S.Repeat (sexpr_to_shape x)
+  | A.List (Symbol "union" :: rst) ->  let l = List.map sexpr_to_shape rst in S.Union (l, ref l)
   | A.List l -> S.List (List.map sexpr_to_shape l)
   | A.Symbol s when s = "ident" -> Ident
   | A.Symbol s -> try S.Type (S.symbol_to_type s) with 
